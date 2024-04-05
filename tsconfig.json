@@ -1,6 +1,7 @@
 {
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
+    "jsx": "react",
     "paths": {
       "react-native-video": ["../../src/index"],
       "react": ["./node_modules/@types/react"]
