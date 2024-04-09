@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {ResizeMode} from 'react-native-video';
+import {ResizeMode} from '.';
 
 export type MultiValueControlPropType = number | string | ResizeMode;
 

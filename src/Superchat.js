@@ -1,180 +1,166 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
-import { Socket } from 'phoenix'; // Make sure to import the correct library for Phoenix sockets in React Native
+import { View, TextInput, TouchableOpacity, StyleSheet, Keyboard, Animated, Easing, Platform } from 'react-native'; // Include Platform module
+import { Socket } from 'phoenix';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const generateRandomString = (length) => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters.charAt(randomIndex);
-  }
-
-  return result;
-}
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Emoji from './Emoji';
 
 const SuperChat = ({ channelName }) => {
   const [socket, setSocket] = useState(null);
   const [channel, setChannel] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [message, setMessage] = useState('');
+  const [inputContainerBottom] = useState(new Animated.Value(0));
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Changed state name
 
   useEffect(() => {
     startChatApp(channelName);
+    const keyboardDidShowListener = Keyboard.addListener('keyboardWillShow', keyboardDidShow);
+    const keyboardDidHideListener = Keyboard.addListener('keyboardWillHide', keyboardDidHide);
     return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
       if (socket) {
         socket.disconnect();
       }
     };
-  }, [channelName]);
+  }, [channelName, showEmojiPicker]);
 
   const startChatApp = async (channelName) => {
-    if (socket) {
-      socket.disconnect();
-    }
-
-    const newSocket = new Socket("wss://api.sariska.io/api/v1/messaging/websocket", {
-      params: { token: await getToken() }
-    });
-
-    newSocket.connect();
-
-    newSocket.onOpen(() => {
-      console.log("Socket opened");
-    });
-
-    newSocket.onClose(() => {
-      console.log("Connection dropped");
-    });
-
-    newSocket.onError((error) => {
-      console.log("Socket error", error);
-      console.error("There was an error with the connection");
-    });
-
-    setSocket(newSocket);
-
-    const newChannel = newSocket.channel(`chat:${channelName.toLowerCase()}`);
-
-    newChannel.on("presence_state", function (payload) {
-      const currentlyOnlinePeople = Object.entries(payload).map(elem => ({
-        username: elem[1].metas[0].name,
-        id: elem[1].metas[0].phx_ref
-      }));
-      setOnlineUsers(currentlyOnlinePeople);
-    });
-
-    newChannel.on("presence_diff", function (payload) {
-      // Implement logic for updating online users when someone joins or leaves
-    });
-
-    newChannel.on("new_message", function (payload) {
-      setMessages([...messages, payload]);
-    });
-
-    newChannel.join()
-      .receive("ok", () => console.log("Channel joined"))
-      .receive("error", () => console.log("Failed to join"))
-      .receive("timeout", () => console.log("Encountering network connectivity problems. Waiting for the connection to stabilize."));
-
-    setChannel(newChannel);
+    // Your existing code for starting the chat app
   };
 
   const getToken = async () => {
-    try {
-      let token = await AsyncStorage.getItem('token');
-      if (token) {
-        return token;
-      }
-  
-      let id = await AsyncStorage.getItem('id');
-      let name = await AsyncStorage.getItem('name');
-  
-      if (!id || !name) {
-        // If id or name doesn't exist, generate random strings
-        id = generateRandomString();
-        name = generateRandomString();
-  
-        // Store generated id and name in AsyncStorage
-        await AsyncStorage.setItem('id', id);
-        await AsyncStorage.setItem('name', name);
-      }
-  
-      const body = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey: '27fd6f9296c71b4a2f2ad1f533e6b5c075c005bbdeac76923e',
-          user: {
-            id,
-            name,
-            email: 'nick@gmail.com',
-            avatar: 'https://test.com/user/profile.jpg',
-            moderator: true,
-          },
-        }),
-      };
-  
-      const response = await fetch('https://api.sariska.io/api/v1/misc/generate-token', body);
-      if (response.ok) {
-        const json = await response.json();
-        token = json.token;
-        await AsyncStorage.setItem('token', token);
-        return token;
-      } else {
-        console.log(response.status);
-      }
-    } catch (error) {
-      console.log('error', error);
-    }
+    // Your existing code for getting token
   };
-  
 
   const sendMessage = () => {
-    if (!message.trim()) {
-      return; // Don't send empty messages
-    }
+    // Your existing code for sending message
+  };
 
-    if (channel) {
-      channel.push('new_message', {
-        content: message,
-        content_type: "text"
-      });
-      setMessage(''); // Clear the message input field after sending
-    }
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
+    return false;
+  };
+
+  const keyboardDidShow = () => {
+    Animated.timing(inputContainerBottom, {
+      toValue: 300,
+      duration: 300,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handlePress = (e) => {
+    e.stopPropagation();
+    // Your other logic here
+  };
+  
+  const stopPropagation = (e) => {
+    e.stopPropagation();
+  };
+
+
+  const keyboardDidHide = () => {
+    Animated.timing(inputContainerBottom, {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
   };
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute', bottom: 0 }}>
-      <TextInput
-          placeholder="Type your message"
-          style={{
-              height: 80,
-              position: 'absolute',
-              bottom: 0,
-              flex: 1,
-              borderWidth: 0, // Remove border
-              borderBottomWidth: 1, // Add bottom border
-              borderColor: '#ccc', // Border color
-              padding: 10, // Padding
-              height: 60, // Height
-              marginBottom: 10, // Spacing between inputs
-              fontSize: 16, // Font size
-          }}
-          placeholderTextColor="#999" // Placeholder text color
-          value={message}
-          onChangeText={setMessage}
-      />
-      <TouchableOpacity onPress={sendMessage}>
-          <Text style={{ padding: 10, backgroundColor: 'blue', color: 'white', borderRadius: 5 }}>Send</Text>
-      </TouchableOpacity>
+    <View style={styles.container}>
+      <Animated.View style={[styles.inputAndEmojiContainer, { bottom: inputContainerBottom }]}>
+        <View onTouchEnd={(e)=>{ e.stopPropagation()}} onPress={stopPropagation}>
+          {showEmojiPicker && (
+            <TouchableOpacity onPress={handlePress}>
+              <Emoji
+                onPress={stopPropagation}
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
+                }}
+                onEmojiSelected={(emoji) => {
+                  setMessage(message + emoji);
+                }}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInput
+            placeholder="Type your message"
+            style={styles.input}
+            placeholderTextColor="#999"
+            value={message}
+            onChangeText={setMessage}
+            keyboardType={'default'} // Change keyboardType to 'default'
+          />
+          <TouchableOpacity onPress={toggleEmojiPicker}>
+            <Icon name="insert-emoticon" size={24} color="gray" style={styles.emoji} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={sendMessage}>
+            <Icon name="send" size={24} color="gray" style={styles.sendButton} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </View>
   );
-}
+};
 
 export default SuperChat;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: '#f0f0f0',
+    borderTopColor: '#0f0f0f'
+  },
+  inputAndEmojiContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  inputContainer: {
+    display: 'flex',
+    borderBottomColor: '#0f0f0f',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+    paddingHorizontal: 10,
+    height: 100,
+    position: 'relative',
+    alignItems: 'center',
+    paddingBottom: 30,
+    justifyContent: 'center',
+    right: 0,
+    borderTopColor: '#0f0f0f'
+  },
+  input: {
+    display: 'flex',
+    fontSize: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    height: 40,
+    width: 320,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+  },
+  emoji: {
+    position: 'absolute',
+    left: 130,
+    bottom: 10
+  },
+  sendButton: {
+    padding: 10,
+    position: 'absolute',
+    borderRadius: 5,
+    left: 155,
+    bottom: 0
+  },
+});

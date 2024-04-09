@@ -3,6 +3,7 @@ import React from "react";
 import { Header } from 'react-native-elements'; // Import Icon from react-native-elements
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video';
+import SuperChat from "./Superchat";
 
 const styles = StyleSheet.create({
     headerLeft: {
@@ -16,9 +17,9 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
     },
     headerLeftImage: {
-        width: 40,
-        height: 40,
-        marginRight: 10,
+      width: 40,
+      height: 40,
+      marginRight: 10,
     },
     searchBar: {
       display: 'flex',
@@ -32,17 +33,17 @@ const styles = StyleSheet.create({
       backgroundColor: 'white',
     },
     container: {
-        flex: 1,
-        backgroundColor: "#0f0f0f",
+      flex: 1,
+      backgroundColor: "#0f0f0f",
     },
     title: {
-        fontSize: 16,
-        fontWeight: "bold",
-        textAlign: "center",
-        color: "#fff",
-        display:"flex",
-        alignItems: "center",
-        justifyContent: "center"
+      fontSize: 16,
+      fontWeight: "bold",
+      textAlign: "center",
+      color: "#fff",
+      display:"flex",
+      alignItems: "center",
+      justifyContent: "center"
     },
     header: {
       margin: 0,
@@ -90,10 +91,18 @@ const styles = StyleSheet.create({
       borderWidth: 0, // Add this line to remove the border
       padding: 0,
       margin: 0
+    },
+    chatContainer: {
+      position: 'absolute',
+      bottom: 0, // Stick to the bottom of the screen
+      left: 0,
+      right: 0,
+      borderWidth: 0, // Add this line to remove the border
     }
 });
 
-export default function App() {
+
+export default function videoPlayer() {
   const [showSearchBar, setShowSearchBar] = React.useState(false);
   const [hls, setHls] = React.useState('');
 
@@ -157,6 +166,9 @@ export default function App() {
                 style={styles.videoPlayer}
                 controls={true}
               />
+          </View>
+          <View style={styles.chatContainer}>
+            <SuperChat/>
           </View>
       </SafeAreaView>
   );

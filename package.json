@@ -2,8 +2,6 @@
   "name": "VideoPlayer",
   "version": "1.0.0",
   "private": true,
-  "source": "./src/index.js",
-  "react-native": "./src/index.js",
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
@@ -16,20 +14,21 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
-    "@react-native-picker/picker": "^1.9.11",
+    "expo-status-bar": "^1.11.1",
     "i": "^0.3.7",
     "node-fetch": "2.6.1",
     "npm": "^10.5.1",
     "phoenix": "^1.7.11",
     "react": "18.2.0",
-    "react-native-video": "5.2.1",
     "react-native": "0.73.6",
     "react-native-elements": "4.0.0-rc.8",
     "react-native-gesture-handler": "2.16.0",
     "react-native-header-search-bar": "^0.1.10",
     "react-native-safe-area-context": "4.9.0",
     "react-native-vector-icons": "^10.0.3",
-    "react-native-windows": "0.63.41"
+    "react-native-video": "5.2.1",
+    "react-native-windows": "0.63.41",
+    "rn-emoji-picker": "^1.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.22.10",
@@ -49,6 +48,8 @@
     "typescript": "5.0.4"
   },
   "resolutions": {
+    "wrap-ansi": "7.0.0",
+    "string-width": "4.1.0",
     "@types/react": "^18.0.24"
   },
   "engines": {
