@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
       justifyContent: 'center'
     },
     headerContainer: {
-      margin: 0, // Remove margin
-      padding: 0, // Remove padding
+      margin: 0,
+      padding: 0,
       borderWidth: 0, // Add this line to remove the border
       height: 60,
       display: 'flex',
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
       alignContent: 'center'
     },
     videoContainer: {
-      borderWidth: 0,
+      borderWidth: 0, // Add this line to remove the border
       padding: 0,
       margin: 0
     }
@@ -148,11 +148,11 @@ export default function App() {
             />
           </View>
           <View style={styles.videoContainer} >
-            {/* <Video
+            <Video
                 source={{ uri: 'https://bitmovin-a.akamaihd.net/content/playhouse-vr/m3u8s/105560.m3u8' }}
                 style={styles.videoPlayer}
                 controls={true}
-              /> */}
+              />
           </View>
       </SafeAreaView>
   );
