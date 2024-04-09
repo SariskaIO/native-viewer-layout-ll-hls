@@ -150,43 +150,30 @@ const SuperChat = ({ channelName }) => {
   };
 
   return (
-<View style={{ flex: 1, flexDirection: 'column' }}>
-  <FlatList
-    data={onlineUsers}
-    keyExtractor={(item) => item.id}
-    renderItem={({ item }) => (
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: 'red', marginRight: 5 }}>
-          <Text style={{ textAlign: 'center', lineHeight: 30 }}>{item.username[0]}</Text>
-        </View>
-        <Text>{item.username}</Text>
-      </View>
-    )}
-  />
-  <FlatList
-    data={messages}
-    keyExtractor={(item, index) => index.toString()}
-    renderItem={({ item }) => (
-      <View>
-        <Text>{item.content}</Text>
-      </View>
-    )}
-  />
-  <View style={{ paddingHorizontal: 10, paddingBottom: 10 }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute', bottom: 0 }}>
       <TextInput
-        placeholder="Type your message"
-        style={{ flex: 1, borderWidth: 1, borderColor: 'gray', borderRadius: 5, padding: 10, height: 30, marginRight: 10 }}
-        value={message}
-        onChangeText={setMessage}
+          placeholder="Type your message"
+          style={{
+              height: 80,
+              position: 'absolute',
+              bottom: 0,
+              flex: 1,
+              borderWidth: 0, // Remove border
+              borderBottomWidth: 1, // Add bottom border
+              borderColor: '#ccc', // Border color
+              padding: 10, // Padding
+              height: 60, // Height
+              marginBottom: 10, // Spacing between inputs
+              fontSize: 16, // Font size
+          }}
+          placeholderTextColor="#999" // Placeholder text color
+          value={message}
+          onChangeText={setMessage}
       />
       <TouchableOpacity onPress={sendMessage}>
-        <Text style={{ padding: 10, backgroundColor: 'blue', color: 'white', borderRadius: 5 }}>Send</Text>
+          <Text style={{ padding: 10, backgroundColor: 'blue', color: 'white', borderRadius: 5 }}>Send</Text>
       </TouchableOpacity>
     </View>
-  </View>
-</View>
-
   );
 }
 

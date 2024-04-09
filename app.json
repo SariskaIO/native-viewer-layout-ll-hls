@@ -1,4 +1,7 @@
 {
   "name": "VideoPlayer",
-  "displayName": "VideoPlayer"
+  "displayName": "VideoPlayer", 
+  "expo": {
+    "entryPoint": "./src/index.js"
+  }
 }
