@@ -45,11 +45,15 @@ const styles = StyleSheet.create({
         justifyContent: "center"
     },
     header: {
+      margin: 0,
+      padding: 0,
+      borderWidth: 0, // Add this line to remove the border
       display: "flex",
       backgroundColor:  "#0f0f0f",
       alignItems: 'center', // Align items in the center horizontally
       justifyContent: 'space-between', // Align items with equal space between them horizontally
-      flexDirection: 'row' // Arrange items horizontally
+      flexDirection: 'row', // Arrange items horizontally,
+      borderBottomColor: '#0f0f0f'
     },
     videoPlayer: {
       width: '100%',
