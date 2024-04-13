@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Keyboard, Animated, Easing, Platform } from 'react-native'; // Include Platform module
+import { View, TextInput, TouchableOpacity, StyleSheet, Keyboard, Animated, Easing, Platform, AsyncStorage } from 'react-native'; // Include Platform module
 import { Socket } from 'phoenix';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Emoji from './Emoji';
 

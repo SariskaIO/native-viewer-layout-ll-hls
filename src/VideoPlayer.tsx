@@ -1,4 +1,6 @@
 import { StyleSheet, SafeAreaView, Text, TouchableOpacity, Image, View, TextInput } from "react-native";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import React from "react";
 import { Header } from 'react-native-elements'; // Import Icon from react-native-elements
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -145,7 +147,7 @@ export default function videoPlayer() {
   };
 
   return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaProvider style={styles.container}>
           <View style={styles.headerContainer}>
             <Header
                 containerStyle={styles.header}
@@ -170,6 +172,6 @@ export default function videoPlayer() {
           <View style={styles.chatContainer}>
             <SuperChat/>
           </View>
-      </SafeAreaView>
+      </SafeAreaProvider>
   );
 }
