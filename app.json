@@ -2,6 +2,14 @@
   "name": "VideoPlayer",
   "displayName": "VideoPlayer", 
   "expo": {
-    "entryPoint": "./src/index.js"
+    "entryPoint": "./src/index.js",
+     "plugins": [
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ]
   }
 }

@@ -6,6 +6,7 @@ import { Header } from 'react-native-elements'; // Import Icon from react-native
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video';
 import SuperChat from "./Superchat";
+import {extractStreamFromUrl} from "./Utils";
 
 const styles = StyleSheet.create({
     headerLeft: {
@@ -170,7 +171,7 @@ export default function videoPlayer() {
               />
           </View>
           <View style={styles.chatContainer}>
-            <SuperChat/>
+            <SuperChat channelName={extractStreamFromUrl(hls)} />
           </View>
       </SafeAreaProvider>
   );
