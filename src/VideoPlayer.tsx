@@ -6,7 +6,7 @@ import { Header } from 'react-native-elements'; // Import Icon from react-native
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video';
 import SuperChat from "./Superchat";
-import {extractStreamFromUrl} from "./Utils";
+import {extractStreamFromUrl,isHLSURL} from "./Utils";
 
 const styles = StyleSheet.create({
     headerLeft: {
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     },
     headerLeftImage: {
       width: 40,
-      height: 40,
+      height: "100%",
       marginRight: 10,
     },
     searchBar: {
@@ -60,9 +60,10 @@ const styles = StyleSheet.create({
       borderBottomColor: '#0f0f0f'
     },
     videoPlayer: {
-      width: '100%',
       height: 300,
-      backgroundColor: 'black',
+      borderWidth: 0, // Add this line to remove the border
+      padding: 0,
+      margin: 0
     },
     leftComponent: {
       flex: 1, // Make the left component take 1/3 of the header's width
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
       margin: 0,
       padding: 0,
       borderWidth: 0, // Add this line to remove the border
-      height: 60,
+      height: 120,
       display: 'flex',
       justifyContent: 'center',
       alignContent: 'center'
@@ -95,11 +96,15 @@ const styles = StyleSheet.create({
       padding: 0,
       margin: 0
     },
+    video: {
+      width: 360,
+      borderWidth: 0, // Add this line to remove the border
+      padding: 0,
+      margin: 0
+    },
     chatContainer: {
-      position: 'absolute',
-      bottom: 0, // Stick to the bottom of the screen
-      left: 0,
-      right: 0,
+      flex: 1,
+      backgroundColor: "#0f0f0f",
       borderWidth: 0, // Add this line to remove the border
     }
 });
@@ -107,13 +112,14 @@ const styles = StyleSheet.create({
 
 export default function videoPlayer() {
   const [showSearchBar, setShowSearchBar] = React.useState(false);
-  const [hls, setHls] = React.useState('');
+  const [hls, setHls] = React.useState('https://low-latency-edge.sariska.io/original/roa6bfswxp3p5g5t/jhxlefd3sbuv629l/playlist.m3u8');
 
   const renderCenterComponent = () => {
       return (
           <View style={styles.searchContainer}>
               {showSearchBar ? (
                   <TextInput
+                      onEndEditing={({ nativeEvent }) => handlePaste(nativeEvent.text)}
                       placeholder="Enter HLS URL"
                       onChangeText={setHls}
                       value={hls}
@@ -124,6 +130,14 @@ export default function videoPlayer() {
               )}
           </View>
       );
+  };
+
+  const handlePaste = (text) => {
+    // Check if the pasted text is an HLS URL
+    if (isHLSURL(text)) {
+      // Process the HLS URL here, for example, append it to the message with a specific format
+      setHls(text);
+    }
   };
 
   const renderLeftComponent = () => {
@@ -165,8 +179,8 @@ export default function videoPlayer() {
           </View>
           <View style={styles.videoContainer} >
             <Video
-                source={{ uri: 'https://bitmovin-a.akamaihd.net/content/playhouse-vr/m3u8s/105560.m3u8' }}
-                style={styles.videoPlayer}
+                style={styles.video}
+                source={{ uri: 'https://low-latency-edge.sariska.io/original/roa6bfswxp3p5g5t/jhxlefd3sbuv629l/playlist.m3u8' }}
                 controls={true}
               />
           </View>

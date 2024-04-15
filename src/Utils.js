@@ -1,13 +1,18 @@
-import { AsyncStorage } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { URL } from 'react-native-url-polyfill';
 
-function isURL(str) {
+export function isURL(str) {
     var urlRegex = '^(?!mailto:)(?:(?:http|https|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$';
     var url = new RegExp(urlRegex, 'i');
     return str.length < 2083 && url.test(str);
 }
 
-function generateRandomString(length) {
+export function isHLSURL(url) {
+    const regex = /^(https?|ftp):\/\/[^\/\s]+\/[^\/\s]+\/[^\/\s]+\.m3u8$/;
+    return regex.test(url);
+  }
+
+export function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
   
@@ -31,11 +36,7 @@ export function extractStreamFromUrl(url) {
     const pathname = new URL(url).pathname;
     const parts  = pathname.split("/");
 
-    if (parts[1] === "play") {
-        return parts[3];
-    } else if (parts[1] === "multi") {
-        return parts[3]
-    } else if (parts[1] ===  "original") {
+    if (parts[1] === "play" || parts[1] === "multi" || parts[1] ===  "original") { // handling all type of sariska's HLS URLs.
         return parts[3]
     } else if(parts[1]) {
         return parts[1]
@@ -44,10 +45,15 @@ export function extractStreamFromUrl(url) {
 }
 
 export const getToken = async () => {
-    // Check if id and name exist in AsyncStorage
-    let id = await AsyncStorage.getItem('id');
-    let name = await AsyncStorage.getItem('name');
-    let token = await AsyncStorage.getItem("token");
+    let id, name, token;
+    try {
+        // Check if id and name exist in AsyncStorage
+        id = await AsyncStorage.getItem('id');
+        name = await AsyncStorage.getItem('name');
+        token = await AsyncStorage.getItem("token");
+    } catch(e) { 
+        console.log(e)
+    }
 
     if (token) {
         return token;

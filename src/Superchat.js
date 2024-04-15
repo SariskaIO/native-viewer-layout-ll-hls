@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Keyboard } from 'react-native';
+import React, { useState, useEffect , useRef} from 'react';
+
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Text, Keyboard, ScrollView } from 'react-native';
 import { Socket } from 'phoenix';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Emoji from './Emoji';
@@ -10,12 +11,24 @@ let socket = null;
 let channel = null;
 var addedIds = []
 
-const SuperChat = ({ channelName='test' }) => {
+const SuperChat = ({ channelName='test23eh23h' }) => {
   const [message, setMessage] = useState('');
   const [inputContainerBottom] = useState(new Animated.Value(0));
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [fileUri, setFileUri] = useState('');
   const [fileName, setFileName] = useState('');
+  const [messages, setMessages] = useState([]);
+  const scrollViewRef = useRef();
+  const [currentUser, setCurrentUser] = useState({});
+  const [currentRoom, setCurrentRoom] =  useState({});
+  
+  // Scroll to the bottom of the chat container when messages are updated
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
+
 
   useEffect(() => {
     const startChatApp = async () => {
@@ -30,13 +43,11 @@ const SuperChat = ({ channelName='test' }) => {
       socket = new Socket("wss://api.sariska.io/api/v1/messaging/websocket", { params: { token: await getToken() } });
       socket.connect();
 
-      console.log("socket", socket);
-      
       channel = socket.channel(`chat:${channelName.toLowerCase()}`);
       channel.join()
-        .receive("ok", () => console.log("Channel joined"))
-        .receive("error", () => console.log("Failed to join"))
-        .receive("timeout", () => console.log("Waiting for the connection to stabilize"));
+        .receive("ok", (e) => console.log("Channel joined"))
+        .receive("error", (e) => console.log("Failed to join"))
+        .receive("timeout", (e) => console.log("Waiting for the connection to stabilize"));
 
       socket.onOpen = () => {
           console.log("Socket opened", socket);
@@ -52,8 +63,7 @@ const SuperChat = ({ channelName='test' }) => {
       };
 
       socket.connect();
-    
-      channel = socket.channel(`chat:${channelName.toLowerCase()}`); // connect to chat "
+
 
       channel.on('presence_state', function (payload) {
           const currentlyOnlinePeople = Object.entries(payload).map(elem => ({username: elem[1].metas[0].name, id: elem[1].metas[0].phx_ref}));
@@ -72,22 +82,19 @@ const SuperChat = ({ channelName='test' }) => {
       channel.on("user_joined", (payload) => {
           const user = payload.user;
           const room = payload.room;
+          console.log("current user joined", user);
+          setCurrentUser(user);
+          setCurrentRoom(room);
       });
-
-      channel.join()
-      .receive("ok", ()=>console.log("Channel joined"))
-      .receive("error", ()=>console.log("Failed to join"))
-      .receive("timeout", () => console.log("Encountering network connectivity problems. Waiting for the connection to stabilize."))
-    
         // Listening to 'shout' events
       channel.on('new_message', function (payload) {
-          console.log("payload", payload);
-          render_message(payload);
+        console.log("payload", payload)
+        appendMessage(payload);
       });
     
       // Listening to 'shout' events
       channel.on('archived_message', function (payload) {
-          render_message(payload);
+        appendMessage(payload);
       });
     };
 
@@ -101,11 +108,15 @@ const SuperChat = ({ channelName='test' }) => {
     };
   }, [channelName]);
 
-  const render_message = () => {
 
-  }
+  // Function to append new message to the state
+  const appendMessage = (newMessage) => {
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+  };
 
   const sendMessage = () => {
+    console.log("send message", message);
+
     if (fileUri) {
       channel.push('new_message', {
         content_type: "file",
@@ -210,44 +221,52 @@ const SuperChat = ({ channelName='test' }) => {
 
   return (
     <View style={styles.container}>
+      <ScrollView ref={scrollViewRef} style={styles.chatMessageContainer}>
+        {messages.map((message, index) => (
+          <View key={index} style={message.created_by === currentUser.id ? styles.currentUserMessage : styles.otherUserMessage}>
+            <Text style={styles.messageText}>{message.created_by_name}</Text>
+            <Text style={styles.messageText}>{message.content}</Text>
+          </View>
+        ))}
+      </ScrollView>
       <Animated.View style={[styles.inputAndEmojiContainer, { bottom: inputContainerBottom }]}>
-      <View>
-          {showEmojiPicker && (
-            <TouchableOpacity>
-              <Emoji
-                onPress={(e) => {
-                  e.stopPropagation();
-                }}
-                onTouchEnd={(e) => {
-                  e.stopPropagation();
-                }}
-                handlePick={(emoji) => {
-                  console.log("emoji", emoji);
-                  setMessage(message + emoji.emoji);
-                }}
-              />
+        <View>
+            {showEmojiPicker && (
+              <TouchableOpacity>
+                <Emoji
+                  onPress={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                  }}
+                  handlePick={(emoji) => {
+                    console.log("emoji", emoji);
+                    setMessage(message + emoji.emoji);
+                  }}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.inputContainer}>
+            <TouchableOpacity onPress={pickFile}>
+              <Icon name="add" size={24} color="white" style={styles.addButton} />
             </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.inputContainer}>
-          <TouchableOpacity onPress={pickFile}>
-            <Icon name="add" size={24} color="white" style={styles.addButton} />
-          </TouchableOpacity>
-          <TextInput
-            placeholder="Type your message"
-            style={styles.input}
-            placeholderTextColor="#999"
-            value={message}
-            onChangeText={setMessage}
-            keyboardType={'default'}
-          />
-          <TouchableOpacity onPress={toggleEmojiPicker}>
-            <Icon name="insert-emoticon" size={24} color="gray" style={styles.emoji} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={sendMessage}>
-            <Icon name="send" size={24} color="white" style={styles.sendButton} />
-          </TouchableOpacity>
-        </View>
+            <TextInput
+              placeholder="Type your message"
+              style={styles.input}
+              placeholderTextColor="#999"
+              value={message}
+              onChangeText={setMessage}
+              keyboardType={'default'}
+            />
+            <TouchableOpacity onPress={toggleEmojiPicker}>
+              <Icon name="insert-emoticon" size={24} color="gray" style={styles.emoji} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={sendMessage}>
+              <Icon name="send" size={24} color="white" style={styles.sendButton} />
+            </TouchableOpacity>
+          </View>
       </Animated.View>
     </View>
   );
@@ -256,6 +275,28 @@ const SuperChat = ({ channelName='test' }) => {
 export default SuperChat;
 
 const styles = StyleSheet.create({
+  chatMessageContainer: {
+    height: 300,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  currentUserMessage: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+  otherUserMessage: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+  messageText: {
+    fontSize: 16,
+    color: 'white',
+    marginHorizontal: 5,
+  },
   addButton: {
     position: 'absolute',
     left: -195,
@@ -264,10 +305,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#f0f0f0',
   },
   inputAndEmojiContainer: {
-    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
