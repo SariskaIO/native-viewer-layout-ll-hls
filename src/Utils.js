@@ -45,7 +45,7 @@ export function extractStreamFromUrl(url) {
 }
 
 export const getToken = async () => {
-    let id, name, token;
+    let id, name;
     try {
         // Check if id and name exist in AsyncStorage
         id = await AsyncStorage.getItem('id');
@@ -54,16 +54,15 @@ export const getToken = async () => {
         console.log(e)
     }
 
-    if (!id || !name) {
-        // If id or name doesn't exist, generate random strings
+    if (!id) {
         id = generateRandomString();
-        name = generateRandomString();
-
-        // Store generated id and name in AsyncStorage
         await AsyncStorage.setItem('id', id);
-        await AsyncStorage.setItem('name', name);
     }
 
+    if (!name) {
+        name = generateRandomString();
+        await AsyncStorage.setItem('name', name);
+    }
     // Token doesn't exist in AsyncStorage, fetch a new one
     const body = {
         method: "POST",

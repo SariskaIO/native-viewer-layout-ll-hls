@@ -1,6 +1,6 @@
 import React, { useState, useEffect , useRef} from 'react';
 
-import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Text, Keyboard, ScrollView, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Text, Keyboard, ScrollView, Platform , Image} from 'react-native';
 import { Socket } from 'phoenix';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Emoji from './Emoji';
@@ -23,6 +23,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
   const scrollViewRef = useRef();
   const [currentUser, setCurrentUser] = useState({});
   const [currentRoom, setCurrentRoom] =  useState({});
+  const [imageAttaced, setImageAttaced] = useState("");
 
   
   // Scroll to the bottom of the chat container when messages are updated
@@ -128,6 +129,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
         content: fileUri,
       });
       setFileUri('');
+      setImageAttaced(false);
     } else {
       channel.push('new_message', {
         content_type: "text",
@@ -168,7 +170,6 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
   getPresignedUrl = async (fileType, fileName) => {
     try {
         const token = await getToken(); // Assuming you're using AsyncStorage for storing token
-        console.log("token", token, fileType, fileName);
         const response = await fetch('https://api.sariska.io/api/v1/misc/get-presigned', {
             method: 'POST',
             headers: {
@@ -195,10 +196,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
         const res = await DocumentPicker.pick({
             type: [DocumentPicker.types.allFiles],
         });
-
         const [{ name, type, uri }] = res;
-
-
         const filePath = Platform.OS === 'ios'
             ? uri.replace('file:///', '').replace('file://', '')
             : uri.replace('file://', '').replace('file:/', '');
@@ -220,6 +218,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
             await RNFetchBlob.fetch('PUT', presignedUrl, headers, RNFetchBlob.wrap(filePath));
             const url = presignedUrl.split('?')[0];
             setFileUri(url);
+            setImageAttaced(true);
         } catch (uploadError) {
             console.log("Failed to upload file to S3:", uploadError);
             // Log additional details if needed
@@ -231,6 +230,34 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
         console.log("Pick Error Details:", pickError.message);
     }
   };
+
+  const getFileExtension = (url) => {
+    const parts = url.split('.');
+    return parts[parts.length - 1];
+  };
+
+  const renderFileContentLarge = (content) => {
+    const fileType = getFileExtension(content);
+    if (fileType === 'jpg' || fileType === 'jpeg' || fileType === 'png') {
+      // Render image if the file extension is jpg, jpeg, or png
+      return <Image style={styles.fileImageLarge} source={{ uri: content }} />
+    } else {
+      // Render MaterialIcon for other file types
+      return  <Icon name="attach-file" size={100} color="white" />
+    }
+  };
+
+  const renderFileContent = (content) => {
+    const fileType = getFileExtension(content);
+    if (fileType === 'jpg' || fileType === 'jpeg' || fileType === 'png') {
+      // Render image if the file extension is jpg, jpeg, or png
+      return  <Image style={styles.fileImage } source={{ uri: content }} />;
+    } else {
+      // Render MaterialIcon for other file types
+      return  <Icon name="cloud-download" size={30} color="white" />;
+    }
+  };
+
 
   const getInitials = (name) => {
     const nameArray = name.split(' ');
@@ -258,9 +285,10 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
 
   return (
     <View style={styles.container}>
+      { !imageAttaced ? 
       <ScrollView ref={scrollViewRef} style={styles.chatMessageContainer}>
         {messages.map((message, index) => (
-          <View key={index} style={message.created_by === currentUser.id ? styles.currentUserMessage : styles.otherUserMessage}>
+          <View key={index} style={message.created_by == currentUser.id ? styles.currentUserMessage : styles.otherUserMessage}>
             <View style={styles.userAvatar}>
               <Text style={styles.avatarText}>{getInitials(message.created_by_name)}</Text>
             </View>
@@ -268,7 +296,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
               <Text style={styles.messageSender}>{message.created_by_name}</Text>
               {message.content_type === 'file' ? (
                 <TouchableOpacity onPress={() => handleFileOpen(message.content)}>
-                  <Text style={styles.fileLink}>Open File</Text>
+                    {renderFileContent(message.content)}
                 </TouchableOpacity>
               ) : (
                 <Text style={styles.messageText}>{message.content}</Text>
@@ -276,7 +304,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
             </View>
           </View>
         ))}
-      </ScrollView>
+      </ScrollView> : <View style={styles.largeFileAttached}>{renderFileContentLarge(fileUri)}</View>}
       <View style={{flex: 1}}>
         <Animated.View style={[styles.inputAndEmojiContainer, { bottom: inputContainerBottom }]}>
           <View>
@@ -334,15 +362,24 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     marginBottom: 20
   },
+  fileImageLarge: {
+    height: 300,
+    width: "100%"
+  },  
+  largeFileAttached: {
+    height: 300,
+    justifyContent: 'center', // Centers content horizontally
+    alignItems: 'center', // Centers content vertically
+  },
   currentUserMessage: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     alignItems: 'flex-end',
     marginBottom: 10,
   },
   otherUserMessage: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-end',
     alignItems: 'flex-end',
     marginBottom: 10,
   },
@@ -382,6 +419,10 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     justifyContent: 'center',
     right: 0,
+  },
+  fileImage: {
+     height: 100,
+     width: "100%"
   },
   input: {
     display: 'flex',
@@ -435,6 +476,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+  },
+  attachedFile: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   avatarText: {
     color: 'white',
