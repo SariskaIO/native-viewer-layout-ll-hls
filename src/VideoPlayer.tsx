@@ -1,7 +1,7 @@
 import { StyleSheet, SafeAreaView, Text, TouchableOpacity, Image, View, TextInput } from "react-native";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Header } from 'react-native-elements'; // Import Icon from react-native-elements
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video';
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
       borderBottomColor: '#0f0f0f'
     },
     videoPlayer: {
-      height: 300,
+      height: 200,
       borderWidth: 0, // Add this line to remove the border
       padding: 0,
       margin: 0
@@ -92,12 +92,15 @@ const styles = StyleSheet.create({
       alignContent: 'center'
     },
     videoContainer: {
+      width: "100%",
       borderWidth: 0, // Add this line to remove the border
       padding: 0,
-      margin: 0
+      margin: 0,
+      paddingBottom: 20,
     },
     video: {
-      width: 360,
+      height: 300,
+      width: "100%",
       borderWidth: 0, // Add this line to remove the border
       padding: 0,
       margin: 0
@@ -106,13 +109,22 @@ const styles = StyleSheet.create({
       flex: 1,
       backgroundColor: "#0f0f0f",
       borderWidth: 0, // Add this line to remove the border
+    },
+    currentViewer: {
+      height: 100,
+      display: "flex",
+      color: "white",
+      flex: 1,
+      justifyContent: "center"
     }
 });
 
 
 export default function videoPlayer() {
   const [showSearchBar, setShowSearchBar] = React.useState(false);
-  const [hls, setHls] = React.useState('https://low-latency-edge.sariska.io/original/roa6bfswxp3p5g5t/jhxlefd3sbuv629l/playlist.m3u8');
+  const [hls, setHls] = React.useState('https://low-latency-edge.sariska.io/original/pvroox8taumifhwhl/m1j7cp8ew8misolnl/playlist.m3u8');
+  const [viewerCount, setViewerCount] = React.useState(0);
+  const [uptime, setUpTime] = React.useState(0);
 
   const renderCenterComponent = () => {
       return (
@@ -126,19 +138,58 @@ export default function videoPlayer() {
                       style={styles.searchBar}
                   />
               ) : (
-                 <Text style={styles.title} >HLS Player</Text>
+                 <Text style={styles.title} >SARISKA LIVE</Text>
               )}
           </View>
       );
   };
 
-  const handlePaste = (text) => {
+  const handlePaste = (text) => { 
     // Check if the pasted text is an HLS URL
     if (isHLSURL(text)) {
       // Process the HLS URL here, for example, append it to the message with a specific format
       setHls(text);
     }
   };
+
+  function updateViewerCount() {
+    var stream = extractStreamFromUrl(hls);
+    var viewerUrl = "https://api.sariska.io/llhls/v1/hooks/srs/live/viewers/count/";
+    var requestUrl = viewerUrl + stream;
+
+    fetch(requestUrl)
+        .then(response => response.json())
+        .then(data => {
+            const count = data["stream:"+stream].current_viewers;
+            const uptime = data["stream:"+stream].uptime;
+            setUpTime(uptime);
+            setViewerCount(count);
+        })
+        .catch(error => {
+            console.error('Error fetching viewer count:', error);
+        });
+  }
+
+  function timeElapsed(timestamp) {
+    const elapsedTime = timestamp; // Convert milliseconds to seconds
+    if (elapsedTime < 60) {
+        return `${Math.floor(elapsedTime)} seconds ago`;
+    } else if (elapsedTime < 3600) {
+        const minutes = Math.floor(elapsedTime / 60);
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    } else if (elapsedTime < 86400) {
+        const hours = Math.floor(elapsedTime / 3600);
+        return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    } else {
+        const days = Math.floor(elapsedTime / 86400);
+        return `${days} day${days !== 1 ? 's' : ''} ago`;
+    }
+}
+
+
+  useEffect(()=>{
+    setInterval(updateViewerCount, 10000);
+  }, [])
 
   const renderLeftComponent = () => {
     return (
@@ -179,10 +230,14 @@ export default function videoPlayer() {
           </View>
           <View style={styles.videoContainer} >
             <Video
+                resizeMode="cover"
                 style={styles.video}
-                source={{ uri: 'https://low-latency-edge.sariska.io/original/roa6bfswxp3p5g5t/jhxlefd3sbuv629l/playlist.m3u8' }}
+                source={{ uri: hls }}
                 controls={true}
+                minLatency={0} // Set minimum acceptable latency to 0 seconds
+                maxLatency={3} // Set maximum acceptable latency to 3 seconds
               />
+                <Text style={{color: "white", marginTop: 20}}>Currently Viewing {viewerCount} people and stream started streaming {timeElapsed(uptime)}</Text>
           </View>
           <View style={styles.chatContainer}>
             <SuperChat channelName={extractStreamFromUrl(hls)} />

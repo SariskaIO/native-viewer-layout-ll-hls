@@ -50,13 +50,8 @@ export const getToken = async () => {
         // Check if id and name exist in AsyncStorage
         id = await AsyncStorage.getItem('id');
         name = await AsyncStorage.getItem('name');
-        token = await AsyncStorage.getItem("token");
     } catch(e) { 
         console.log(e)
-    }
-
-    if (token) {
-        return token;
     }
 
     if (!id || !name) {

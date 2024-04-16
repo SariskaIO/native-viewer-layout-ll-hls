@@ -6,13 +6,6 @@ import { StatusBar } from "expo-status-bar";
 
 export default function Emoji({ handlePick }) {
   const [recent, setRecent] = useState([]);
-    console.log("reached here.......................")
-  const onEmojiSelected = (emoji) => {
-    console.log("Selected emoji:", emoji);
-    // Do something with the selected emoji, e.g., call handlePick
-    handlePick(emoji);
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.emojiPickerContainer}>

@@ -1,15 +1,17 @@
 import React, { useState, useEffect , useRef} from 'react';
 
-import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Text, Keyboard, ScrollView } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Text, Keyboard, ScrollView, Platform } from 'react-native';
 import { Socket } from 'phoenix';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Emoji from './Emoji';
 import { getToken } from "./Utils";
 import DocumentPicker from 'react-native-document-picker';
+import FileViewer from "react-native-file-viewer";
+import RNFS from 'react-native-fs'; // Import react-native-fs
+import RNFetchBlob from 'rn-fetch-blob';
 
 let socket = null;
 let channel = null;
-var addedIds = []
 
 const SuperChat = ({ channelName='test23eh23h' }) => {
   const [message, setMessage] = useState('');
@@ -21,6 +23,7 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
   const scrollViewRef = useRef();
   const [currentUser, setCurrentUser] = useState({});
   const [currentRoom, setCurrentRoom] =  useState({});
+
   
   // Scroll to the bottom of the chat container when messages are updated
   useEffect(() => {
@@ -43,23 +46,24 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
       socket = new Socket("wss://api.sariska.io/api/v1/messaging/websocket", { params: { token: await getToken() } });
       socket.connect();
 
+      console.log("channel name",`chat:${channelName.toLowerCase()}` );
+
       channel = socket.channel(`chat:${channelName.toLowerCase()}`);
       channel.join()
-        .receive("ok", (e) => console.log("Channel joined"))
-        .receive("error", (e) => console.log("Failed to join"))
-        .receive("timeout", (e) => console.log("Waiting for the connection to stabilize"));
+        .receive("ok", (e) => console.log("Channel joined", e))
+        .receive("error", (e) => console.log("Failed to join", e))
+        .receive("timeout", (e) => console.log("Waiting for the connection to stabilize", e));
 
       socket.onOpen = () => {
-          console.log("Socket opened", socket);
+          console.log("socket onOpen");
       };
 
       socket.onClose = () => {
-          console.log("Connection dropped");
+          console.log("Socket onClose");
       };
 
       socket.onError = (error) => {
-          console.log("Socket error", error);
-          console.error("There was an error with the connection");
+          console.log("Socket onError", error);
       };
 
       socket.connect();
@@ -88,12 +92,13 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
       });
         // Listening to 'shout' events
       channel.on('new_message', function (payload) {
-        console.log("payload", payload)
+        console.log("new message received", payload);
         appendMessage(payload);
       });
     
       // Listening to 'shout' events
       channel.on('archived_message', function (payload) {
+        console.log("archived message received", payload);
         appendMessage(payload);
       });
     };
@@ -108,27 +113,33 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
     };
   }, [channelName]);
 
+  const sendMessage = () => {   
+     if (!fileUri && !message) {
+      return;
+     }
 
-  // Function to append new message to the state
-  const appendMessage = (newMessage) => {
-    setMessages(prevMessages => [...prevMessages, newMessage]);
-  };
+     if (showEmojiPicker) {
+      setShowEmojiPicker(false);
+     }
 
-  const sendMessage = () => {
-    console.log("send message", message);
-
-    if (fileUri) {
+     if (fileUri) {
       channel.push('new_message', {
         content_type: "file",
         content: fileUri,
       });
+      setFileUri('');
     } else {
       channel.push('new_message', {
         content_type: "text",
         content: message,
       });
+      setMessage('');
     }
-    setMessage('');
+  };
+
+  // Function to append new message to the state
+  const appendMessage = (newMessage) => {
+    setMessages(prevMessages => [...prevMessages, newMessage]);
   };
 
   const keyboardDidShow = () => {
@@ -149,73 +160,99 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
     }).start();
   };
 
-  const pickFile = async () => {
-    try {
-      const res = await DocumentPicker.pick({
-        type: [DocumentPicker.types.allFiles],
-      });
-      setFileUri(res.uri);
-      setFileName(res.name);
-    } catch (error) {
-      console.log('Error picking file:', error);
-    }
-  };
-
-
   const toggleEmojiPicker = () => {
     setShowEmojiPicker(!showEmojiPicker);
     return false;
   };
 
-  async function getPresignedUrl(params) {
+  getPresignedUrl = async (fileType, fileName) => {
     try {
-        const response = await fetch("https://api.sariska.io/api/v1/misc/get-presigned", {
+        const token = await getToken(); // Assuming you're using AsyncStorage for storing token
+        console.log("token", token, fileType, fileName);
+        const response = await fetch('https://api.sariska.io/api/v1/misc/get-presigned', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${yourAuthToken}` // Replace yourAuthToken with the actual token
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
-                fileType: params.fileType,
-                fileName: params.fileName
-            })
+                fileType,
+                fileName,
+            }),
         });
-
         if (response.ok) {
-            const data = await response.json();
-            return data;
+            return await response.json();
         } else {
-            throw new Error('Failed to fetch presigned URL');
+            throw new Error('Failed to get presigned URL');
         }
     } catch (error) {
-        console.log('Error fetching presigned URL:', error);
         throw error;
-    }
-  }
+      }
+  };
 
-  const handleFileUpload = async (uri, name) => {
+  pickFile = async () => {
     try {
-        const signedUrl = await getPresignedUrl({ fileName: name });
-        const response = await fetch(signedUrl, {
-            method: 'PUT',
-            body: uri,
-            headers: {
-                'Content-Type': 'application/octet-stream',
-                'Content-Disposition': 'attachment',
-                'ACL': 'public-read'
-            }
+        const res = await DocumentPicker.pick({
+            type: [DocumentPicker.types.allFiles],
         });
 
-        if (response.ok) {
-            // Handle successful upload
-            const url = signedUrl.split('?')[0];
+        const [{ name, type, uri }] = res;
+
+
+        const filePath = Platform.OS === 'ios'
+            ? uri.replace('file:///', '').replace('file://', '')
+            : uri.replace('file://', '').replace('file:/', '');
+        setFileUri(uri);
+        setFileName(name);
+
+        const presignedUrlResponse = await this.getPresignedUrl(type, name);
+        const { presignedUrl } = presignedUrlResponse;
+
+        console.log('presignedUrl', presignedUrl);
+
+        const headers = {
+            'Content-Type': type,
+            'Content-Disposition': 'attachment',
+            'ACL': 'public-read',
+        };
+
+        try {
+            await RNFetchBlob.fetch('PUT', presignedUrl, headers, RNFetchBlob.wrap(filePath));
+            const url = presignedUrl.split('?')[0];
             setFileUri(url);
-            setFileName(name);
-        } else {
-            throw new Error('Failed to upload');
+        } catch (uploadError) {
+            console.log("Failed to upload file to S3:", uploadError);
+            // Log additional details if needed
+            console.log("Upload Error Details:", uploadError.response().text());
         }
+    } catch (pickError) {
+        console.log('Failed to pick file:', pickError);
+        // Log additional details if needed
+        console.log("Pick Error Details:", pickError.message);
+    }
+  };
+
+  const getInitials = (name) => {
+    const nameArray = name.split(' ');
+    return nameArray.map((n) => n.charAt(0)).join('').toUpperCase();
+  };
+
+  const handleFileOpen = async (url) => {
+    const extension = url.split(/[#?]/)[0].split('.').pop().trim();
+
+    console.log("extension", extension);
+
+    const localFile = `${RNFS.DocumentDirectoryPath}/temporaryfile.${extension}`;
+    const options = {
+      fromUrl: url,
+      toFile: localFile,
+    };
+    try {
+      console.log("options", options);
+      await RNFS.downloadFile(options).promise;
+      await FileViewer.open(localFile);
     } catch (error) {
-        console.log('Failed to upload:', error);
+      console.error('Error downloading or opening file:', error);
     }
   };
 
@@ -224,50 +261,65 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
       <ScrollView ref={scrollViewRef} style={styles.chatMessageContainer}>
         {messages.map((message, index) => (
           <View key={index} style={message.created_by === currentUser.id ? styles.currentUserMessage : styles.otherUserMessage}>
-            <Text style={styles.messageText}>{message.created_by_name}</Text>
-            <Text style={styles.messageText}>{message.content}</Text>
+            <View style={styles.userAvatar}>
+              <Text style={styles.avatarText}>{getInitials(message.created_by_name)}</Text>
+            </View>
+            <View style={styles.messageContent}>
+              <Text style={styles.messageSender}>{message.created_by_name}</Text>
+              {message.content_type === 'file' ? (
+                <TouchableOpacity onPress={() => handleFileOpen(message.content)}>
+                  <Text style={styles.fileLink}>Open File</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.messageText}>{message.content}</Text>
+              )}
+            </View>
           </View>
         ))}
       </ScrollView>
-      <Animated.View style={[styles.inputAndEmojiContainer, { bottom: inputContainerBottom }]}>
-        <View>
-            {showEmojiPicker && (
-              <TouchableOpacity>
-                <Emoji
-                  onPress={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onTouchEnd={(e) => {
-                    e.stopPropagation();
-                  }}
-                  handlePick={(emoji) => {
-                    console.log("emoji", emoji);
-                    setMessage(message + emoji.emoji);
-                  }}
-                />
+      <View style={{flex: 1}}>
+        <Animated.View style={[styles.inputAndEmojiContainer, { bottom: inputContainerBottom }]}>
+          <View>
+              {showEmojiPicker && (
+                <TouchableOpacity>
+                  <Emoji
+                    onPress={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation();
+                    }}
+                    handlePick={(emoji) => {
+                      console.log("emoji", emoji);
+                      setMessage(message + emoji.emoji);
+                    }}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.inputContainer}>
+              <TouchableOpacity onPress={pickFile}>
+                <Icon name="add" size={24} color="white" style={styles.addButton} />
               </TouchableOpacity>
-            )}
-          </View>
-          <View style={styles.inputContainer}>
-            <TouchableOpacity onPress={pickFile}>
-              <Icon name="add" size={24} color="white" style={styles.addButton} />
-            </TouchableOpacity>
-            <TextInput
-              placeholder="Type your message"
-              style={styles.input}
-              placeholderTextColor="#999"
-              value={message}
-              onChangeText={setMessage}
-              keyboardType={'default'}
-            />
-            <TouchableOpacity onPress={toggleEmojiPicker}>
-              <Icon name="insert-emoticon" size={24} color="gray" style={styles.emoji} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={sendMessage}>
-              <Icon name="send" size={24} color="white" style={styles.sendButton} />
-            </TouchableOpacity>
-          </View>
-      </Animated.View>
+              <TextInput
+                placeholder="Type your message"
+                style={styles.input}
+                placeholderTextColor="#999"
+                value={message}
+                onChangeText={setMessage}
+                onPaste={(event) => handlePaste(event.nativeEvent.text)}
+                keyboardType={'default'}
+              />
+              <TouchableOpacity onPress={toggleEmojiPicker}>
+                <Icon name="insert-emoticon" size={24} color="gray" style={styles.emoji} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={sendMessage}>
+                <Icon name="send" size={24} color="white" style={styles.sendButton} />
+              </TouchableOpacity>
+            </View>
+        </Animated.View>
+      </View>
+
     </View>
   );
 };
@@ -276,9 +328,11 @@ export default SuperChat;
 
 const styles = StyleSheet.create({
   chatMessageContainer: {
+    backgroundColor: "#333333",
     height: 300,
     paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingBottom: 20,
+    marginBottom: 20
   },
   currentUserMessage: {
     flexDirection: 'row',
@@ -303,15 +357,19 @@ const styles = StyleSheet.create({
     bottom: -30
   },
   container: {
-    flex: 1,
+    flex: 5,
     position: 'relative',
   },
   inputAndEmojiContainer: {
+    flex: 1,
+    position: 'absolute',
     left: 0,
+    backgroundColor: '#0f0f0f',
     right: 0,
-    bottom: 0,
+    bottom: 0
   },
   inputContainer: {
+    flex: 1,
     display: 'flex',
     borderBottomColor: '#0f0f0f',
     borderTopWidth: 1,
@@ -349,4 +407,51 @@ const styles = StyleSheet.create({
     left: 165,
     bottom: 0
   },
+  currentUserMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#DCF8C6',
+    alignSelf: 'flex-end',
+    borderRadius: 8,
+    margin: 5,
+    maxWidth: '70%',
+  },
+  otherUserMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    margin: 5,
+    maxWidth: '70%',
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'skyblue',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 20,
+  },
+  messageContent: {
+    flex: 1,
+  },
+  messageSender: {
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  messageText: {
+    fontSize: 16,
+  },
+  fileLink: {
+    color: 'blue',
+    textDecorationLine: 'underline'
+  }
 });
