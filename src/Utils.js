@@ -63,7 +63,6 @@ export const getToken = async () => {
         name = generateRandomString();
         await AsyncStorage.setItem('name', name);
     }
-    // Token doesn't exist in AsyncStorage, fetch a new one
     const body = {
         method: "POST",
         headers: {

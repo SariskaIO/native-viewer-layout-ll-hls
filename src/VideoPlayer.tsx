@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
 
 export default function videoPlayer() {
   const [showSearchBar, setShowSearchBar] = React.useState(false);
-  const [hls, setHls] = React.useState('https://low-latency-edge.sariska.io/original/pvroox8taumifhwhl/m1j7cp8ew8misolnl/playlist.m3u8');
+  const [hls, setHls] = React.useState('');
   const [viewerCount, setViewerCount] = React.useState(0);
   const [uptime, setUpTime] = React.useState(0);
 

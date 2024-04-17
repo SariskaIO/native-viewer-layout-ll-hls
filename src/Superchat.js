@@ -91,13 +91,13 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
           setCurrentUser(user);
           setCurrentRoom(room);
       });
-        // Listening to 'shout' events
+        // Listening to 'new_message' events
       channel.on('new_message', function (payload) {
         console.log("new message received", payload);
         appendMessage(payload);
       });
     
-      // Listening to 'shout' events
+      // Listening to 'listen event for archived_message' events
       channel.on('archived_message', function (payload) {
         console.log("archived message received", payload);
         appendMessage(payload);
@@ -266,7 +266,6 @@ const SuperChat = ({ channelName='test23eh23h' }) => {
 
   const handleFileOpen = async (url) => {
     const extension = url.split(/[#?]/)[0].split('.').pop().trim();
-
     console.log("extension", extension);
 
     const localFile = `${RNFS.DocumentDirectoryPath}/temporaryfile.${extension}`;
