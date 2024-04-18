@@ -21,6 +21,9 @@ const modules = Object.keys({...pak.peerDependencies});
  * @type {import('metro-config').MetroConfig}
  */
 const config = {
+  resolver: {
+    sourceExts: ['jsx', 'js', 'json', 'ts', 'tsx'], // Add any other extensions you use
+  },
   watchFolders: [root],
   resolver: {
     blacklistRE: blacklist([
@@ -47,6 +50,7 @@ const config = {
       path.resolve(path.join(__dirname, './node_modules')),
       path.resolve(path.join(__dirname, '../../node_modules')),
     ],
+    entry: './src/index.js',
     transformer: {
       getTransformOptions: async () => ({
         transform: {

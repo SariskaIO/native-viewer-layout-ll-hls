@@ -6,12 +6,14 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "windows": "react-native run-windows",
-    "start": "react-native start",
+    "start-ios": "react-native start --reset-cache --entry-file=src/index.js"
+,    "start": "react-native start",
     "test": "jest",
     "lint": "eslint .",
     "pod-install": "cd ios && pod install && cd ..",
     "pod-install:newarch": "cd ios && RCT_NEW_ARCH_ENABLED=1 bundle exec pod install && cd .."
   },
+  
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@rneui/base": "^0.0.0-edge.2",
@@ -61,6 +63,7 @@
     "string-width": "4.1.0",
     "@types/react": "^18.0.24"
   },
+  "main": "./src/index.js",
   "engines": {
     "node": ">=18"
   }
